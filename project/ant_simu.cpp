@@ -79,10 +79,7 @@ int main(int nargs, char* argv[])
 
     gui::event_manager manager;
     manager.on_key_event(int('q'), [] (int code) { exit(0); });
-    manager.on_key_event(int('t'), [] (int code) { std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
-    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
-    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
-    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;});
+    manager.on_key_event(int('t'), [] (int code) { std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;});
     manager.on_display([&] { displayer.display(food_quantity); win.blit(); });
     manager.on_idle([&] () { 
         advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
