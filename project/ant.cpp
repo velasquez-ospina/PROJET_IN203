@@ -4,6 +4,11 @@
 
 double ant::m_eps = 0.;
 
+
+void ant::set_position(position_t new_position){
+    m_path_to_nest.emplace_back(new_position);
+}
+
 void ant::advance( pheronome& phen, const labyrinthe& laby, const position_t& pos_food, const position_t& pos_nest,
                    std::size_t& cpteur_food ) {
     std::random_device                       rd;  // Will be used to obtain a seed for the random number engine

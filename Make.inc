@@ -3,7 +3,7 @@
 # DIRECTORY OU EST INSTALLE LE PROJET :
 PROJECT_ROOT =/media/david/Hard_Disk/ENSTA/ANNEE_2/IN203/TP_self/Projet/Projet_laby_ants
 # Compilateur utilise
-CXX = g++
+CXX = mpic++
 # Options pour le debogage et l'optimisation
 DEBUGOPT = -g -Wall -pedantic -fopenmp -D_GLIBCXX_DEBUG_PEDANTIC
 OPTIMOPT = -O2 -march=native -fopenmp
