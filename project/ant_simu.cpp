@@ -14,20 +14,39 @@
 # include "gui/event_manager.hpp"
 # include "display.hpp"
 
+/*
+std::chrono::time_point<std::chrono::system_clock> start1, end;
+  start1 = std::chrono::system_clock::now();
+
+  end = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end-start1;
+  std::cout << "Temps assemblage vecteurs : " << elapsed_seconds.count()  << std::endl;
+
+
+*/
+
+    std::chrono::time_point<std::chrono::system_clock> start1, start2, start3, start4, end1, end2, end3, end4;
+    std::chrono::duration<double> time1, time2, time3, time4;
 void advance_time( const labyrinthe& land, pheronome& phen, 
                    const position_t& pos_nest, const position_t& pos_food,
-                   std::vector<ant>& ants, std::size_t& cpteur )
+                   std::vector<ant>& ants, std::size_t& cpteur)
 {
-    for ( size_t i = 0; i < ants.size(); ++i )
-        ants[i].advance(phen, land, pos_food, pos_nest, cpteur);
+    start1 = std::chrono::system_clock::now();
+    #pragma omp parallel for reduction(+:cpteur)
+    for ( size_t i = 0; i < ants.size(); ++i ){
+        ants[i].advance(phen, land, pos_food, pos_nest, cpteur);}
+    end1 = std::chrono::system_clock::now();
+    time1 = end1-start1;
     phen.do_evaporation();
     phen.update();
 }
 
+
 int main(int nargs, char* argv[])
 {
 
-    const dimension_t dims{64,128};// Dimension du labyrinthe
+    bool Switch_end = true;
+    const dimension_t dims{32,64};// Dimension du labyrinthe
     const std::size_t life = int(dims.first*dims.second);
     const int nb_ants = 2*dims.first*dims.second; // Nombre de fourmis
     const double eps = 0.75;  // Coefficient d'exploration
@@ -47,6 +66,7 @@ int main(int nargs, char* argv[])
     // On va créer toutes les fourmis dans le nid :
     std::vector<ant> ants;
     ants.reserve(nb_ants);
+    start2 = std::chrono::system_clock::now();
     for ( size_t i = 0; i < nb_ants; ++i )
         ants.emplace_back(pos_nest, life);
     // On crée toutes les fourmis dans la fourmilière.
@@ -59,11 +79,22 @@ int main(int nargs, char* argv[])
 
     gui::event_manager manager;
     manager.on_key_event(int('q'), [] (int code) { exit(0); });
+    manager.on_key_event(int('t'), [] (int code) { std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
+    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
+    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;
+    std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;});
     manager.on_display([&] { displayer.display(food_quantity); win.blit(); });
     manager.on_idle([&] () { 
         advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
         displayer.display(food_quantity); 
         win.blit(); 
+        if (food_quantity > 100 && Switch_end){
+
+            end2 = std::chrono::system_clock::now();
+            std::chrono::duration<double> time2 = end2-start2;
+            std::cout << "temps pour 100 de nourriture : " << time2.count()  << std::endl;
+            Switch_end = false;
+        }
     });
     manager.loop();
 
