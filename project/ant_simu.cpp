@@ -85,7 +85,7 @@ int main(int nargs, char* argv[])
         advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
         displayer.display(food_quantity); 
         win.blit(); 
-        if (food_quantity > 100 && Switch_end){
+        if (food_quantity > 10000 && Switch_end){
 
             end2 = std::chrono::system_clock::now();
             std::chrono::duration<double> time2 = end2-start2;
