@@ -32,8 +32,9 @@ void advance_time( const labyrinthe& land, pheronome& phen,
                    std::vector<ant>& ants, std::size_t& cpteur)
 {
     //std::cout << omp_get_thread_num() << " ";
-    #pragma omp parallel for reduction(+:cpteur)
+
     start1 = std::chrono::system_clock::now();
+    #pragma omp parallel for reduction(+:cpteur)
     for ( size_t i = 0; i < ants.size(); ++i ){
         ants[i].advance(phen, land, pos_food, pos_nest, cpteur);}
     end1 = std::chrono::system_clock::now();
@@ -92,11 +93,11 @@ int main(int nargs, char* argv[])
             displayer.display(food_quantity); 
         }
         win.blit(); 
-        if (food_quantity > 100 && Switch_end){
+        if (food_quantity > 10000 && Switch_end){
 
             end2 = std::chrono::system_clock::now();
             std::chrono::duration<double> time2 = end2-start2;
-            std::cout << "temps pour 100 de nourriture : " << time2.count()  << std::endl;
+            std::cout << "temps pour 10000 de nourriture : " << time2.count()  << std::endl;
             Switch_end = false;
         }
     });
