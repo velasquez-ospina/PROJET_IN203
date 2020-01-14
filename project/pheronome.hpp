@@ -91,7 +91,7 @@ public:
         double             v1_right    = std::max( right_cell, 0. );
         double             v1_upper    = std::max( upper_cell, 0. );
         double             v1_bottom   = std::max( bottom_cell, 0. );
-        //#pragma omp critical
+        #pragma omp critical
         {
         m_buffer_pheronome[i*m_stride + j] =
             m_alpha * std::max( {v1_left, v1_right, v1_upper, v1_bottom} ) +

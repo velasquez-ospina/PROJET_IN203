@@ -53,6 +53,7 @@ display_t::display_t( const labyrinthe& laby, const pheronome& phen, const posit
 }
 
 void display_t::display( const std::size_t& compteur ) {
+    //std::cout << omp_get_thread_num() << " ";
     m_ref_win.clear( );
     // Affichage des paysages
     gui::draw( laby_points );

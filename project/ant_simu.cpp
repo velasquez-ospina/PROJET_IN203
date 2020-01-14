@@ -31,8 +31,9 @@ void advance_time( const labyrinthe& land, pheronome& phen,
                    const position_t& pos_nest, const position_t& pos_food,
                    std::vector<ant>& ants, std::size_t& cpteur)
 {
-    start1 = std::chrono::system_clock::now();
+    //std::cout << omp_get_thread_num() << " ";
     #pragma omp parallel for reduction(+:cpteur)
+    start1 = std::chrono::system_clock::now();
     for ( size_t i = 0; i < ants.size(); ++i ){
         ants[i].advance(phen, land, pos_food, pos_nest, cpteur);}
     end1 = std::chrono::system_clock::now();
@@ -81,9 +82,15 @@ int main(int nargs, char* argv[])
     manager.on_key_event(int('q'), [] (int code) { exit(0); });
     manager.on_key_event(int('t'), [] (int code) { std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;});
     manager.on_display([&] { displayer.display(food_quantity); win.blit(); });
-    manager.on_idle([&] () { 
-        advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
-        displayer.display(food_quantity); 
+    manager.on_idle([&] () {
+
+        #pragma omp sections nowait
+        {
+            #pragma omp section
+            advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
+            #pragma omp section
+            displayer.display(food_quantity); 
+        }
         win.blit(); 
         if (food_quantity > 100 && Switch_end){
 
@@ -94,6 +101,7 @@ int main(int nargs, char* argv[])
         }
     });
     manager.loop();
+
 
     return 0;
 }
