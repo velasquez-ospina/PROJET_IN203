@@ -85,6 +85,7 @@ int main(int nargs, char* argv[])
 
         gui::event_manager manager;
         manager.on_key_event(int('q'), [] (int code) { exit(0); });
+        manager.on_key_event(int('f'), [&food_quantity] (int code) { std::cout << "Food : " << food_quantity << std::endl;});
         manager.on_key_event(int('t'), [] (int code) { std::cout << "Temps pour le loop advance_time: " << time1.count()  << std::endl;});
         manager.on_display([&] { displayer.display(food_quantity); win.blit(); });
         manager.on_idle([&] () { 
@@ -101,10 +102,12 @@ int main(int nargs, char* argv[])
             food_quantity = buffer[0];
             for (unsigned int i= 0; i < dims.first;i++){
                 for (unsigned int j = 0; j < dims.second ; j++){
-                    phen_buffer.emplace_back(buffer[i*dims.first+j+1]);
+                    phen_buffer.emplace_back(buffer[i*dims.second+j+1]);
                 }
             }
             phen.Swap_copy(phen_buffer);
+
+
             phen_buffer.resize(0);
             for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
             {
@@ -120,10 +123,11 @@ int main(int nargs, char* argv[])
             advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
             double buffer[buffer_size];
             buffer[0]=food_quantity;
-            for (unsigned int i= 0; i < dims.first;i++)
-                for (unsigned int j = 0; j < dims.second ; j++)
-                    buffer[dims.first*i+j+1] = phen(i,j);
-
+            for (unsigned int i= 0; i < dims.first;i++){
+                for (unsigned int j = 0; j < dims.second ; j++){
+                    buffer[dims.second*i+j+1] = phen(i,j);
+                }
+            }
             for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
             {
                 position_t ant_pos=ants[k].get_position();
