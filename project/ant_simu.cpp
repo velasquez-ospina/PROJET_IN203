@@ -78,6 +78,7 @@ int main(int nargs, char* argv[])
     if (rank == 0){
 
         double buffer[buffer_size];
+        std::vector<double> phen_buffer;
         gui::context graphic_context(nargs, argv);
         gui::window& win =  graphic_context.new_window(h_scal*laby.dimensions().second,h_scal*laby.dimensions().first+266);
         display_t displayer( laby, phen, pos_nest, pos_food, ants, win );
@@ -97,11 +98,14 @@ int main(int nargs, char* argv[])
                 Switch_end = false;
             }
             MPI_Recv(buffer,buffer_size,MPI_DOUBLE,MPI_ANY_TAG,101,MPI_COMM_WORLD, &status);
-
             food_quantity = buffer[0];
-            //for (unsigned int i= 0; i < dims.first;i++)
-              //  for (unsigned int j = 0; j < dims.second ; j++)
-
+            for (unsigned int i= 0; i < dims.first;i++){
+                for (unsigned int j = 0; j < dims.second ; j++){
+                    phen_buffer.emplace_back(buffer[i*dims.first+j+1]);
+                }
+            }
+            phen.Swap_copy(phen_buffer);
+            phen_buffer.resize(0);
             for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
             {
                 position_t ant_pos;

@@ -61,6 +61,10 @@ public:
         return m_map_of_pheronome[i * m_stride + j];
     }
 
+    void Swap_copy(std::vector<double> new_map_pheromone){
+        std::copy(new_map_pheromone.begin(),new_map_pheromone.end(),m_map_of_pheronome.begin());
+    }
+
     pheronome_t& operator[]( const position_t& pos ) {
         return m_map_of_pheronome[index( pos )];
     }
