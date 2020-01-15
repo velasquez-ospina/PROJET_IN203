@@ -97,7 +97,7 @@ int main(int nargs, char* argv[])
 
             end2 = std::chrono::system_clock::now();
             std::chrono::duration<double> time2 = end2-start2;
-            std::cout << "temps pour 10000 de nourriture : " << time2.count()  << std::endl;
+            std::cout << "temps pour " << food_quantity << " de nourriture : " << time2.count()  << std::endl;
             Switch_end = false;
         }
     });
