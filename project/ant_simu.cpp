@@ -62,24 +62,52 @@ int main(int nargs, char* argv[])
     MPI_Init( &nargs, &argv );                 
 	MPI_Comm_size(MPI_COMM_WORLD, &nbp);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm globComm;
-	MPI_Comm_dup(MPI_COMM_WORLD, &globComm);
     MPI_Status status;
     // On va créer toutes les fourmis dans le nid :
     std::vector<ant> ants;
+    std::vector<ant> local_ants;
     size_t food_quantity = 0;
     start2 = std::chrono::system_clock::now();
-    const int nb_ants = 2*dims.first*dims.second/(nbp-1); // Nombre de fourmis
+
+    const unsigned int nb_ants = 2*dims.first*dims.second; // Nombre de fourmis
+    const unsigned int local_nb_ants = nb_ants/(8-1);
+    const int buffer_size = dims.first*dims.second+1+2*nb_ants;
+    const int buffer_ants_size = 2*local_nb_ants;
+    const int buffer_phen_size = dims.first*dims.second;
+    double buffer[buffer_size]; //to communicate between process 0 and 1
+    
     ants.reserve(nb_ants);
-    for ( size_t i = 0; i < nb_ants; ++i )
-        ants.emplace_back(pos_nest, life);
-    // On crée toutes les fourmis dans la fourmilière.
+    local_ants.reserve(local_nb_ants);
     pheronome phen(laby.dimensions(), pos_food, pos_nest, alpha, beta);
-    const unsigned int buffer_size = dims.first*dims.second/(nbp-1)+1+2*nb_ants/(nbp-1);
+
+    MPI_Group world_group, group_0_1, group_1_n;
+    MPI_Comm comm_0_1, comm_1_n;
+
+    int ranks_0_1[2] = {0, 1};
+    const unsigned int process = nbp-1;
+    int ranks_1_n[process];
+   
+    for(int i = 1; i < nbp; i++){
+        ranks_1_n[i - 1] = i; 
+    }
+
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+    if(rank == 1 || rank == 0){
+        MPI_Group_incl(world_group, 2, ranks_0_1, &group_0_1);
+        MPI_Comm_create_group(MPI_COMM_WORLD, group_0_1, 0, &comm_0_1);
+    }
+    if(rank >= 1){
+        MPI_Group_incl(world_group, nbp - 1, ranks_1_n, &group_1_n);
+        MPI_Comm_create_group(MPI_COMM_WORLD, group_1_n, 0, &comm_1_n);   
+    }
+    for ( unsigned int i = 0; i < nb_ants; ++i ){
+        ants.emplace_back(pos_nest, life);
+    }
+
+    bool debug = true;
 
     if (rank == 0){
 
-        double buffer[buffer_size];
         std::vector<double> phen_buffer;
         gui::context graphic_context(nargs, argv);
         gui::window& win =  graphic_context.new_window(h_scal*laby.dimensions().second,h_scal*laby.dimensions().first+266);
@@ -100,7 +128,8 @@ int main(int nargs, char* argv[])
                 std::cout << "temps pour 100 de nourriture: " << time2.count()  << std::endl;
                 Switch_end = false;
             }
-                MPI_Recv(buffer,buffer_size,MPI_DOUBLE,1,101,MPI_COMM_WORLD, &status);
+                MPI_Recv(buffer,buffer_size,MPI_DOUBLE,1,101,comm_0_1, &status);
+
                 food_quantity = buffer[0];
                 for (unsigned int i= 0; i < dims.first;i++){
                     for (unsigned int j = 0; j < dims.second ; j++){
@@ -108,82 +137,83 @@ int main(int nargs, char* argv[])
                     }
                 }
                 phen.Swap_copy(phen_buffer);
-
-
                 phen_buffer.resize(0);
-                for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
+                for (unsigned int k = 0,l = 0; k < nb_ants; k++,l+=2)
                 {
                     position_t ant_pos;
-                    ant_pos.first =buffer[dims.first*dims.second+1+l];
-                    ant_pos.second =buffer[dims.first*dims.second+2+l];
+                    ant_pos.first =buffer[buffer_phen_size+1+l];
+                    ant_pos.second =buffer[buffer_phen_size+2+l];
                     ants[k].set_position(ant_pos);
                 } 
         });
         manager.loop();
-    }else if (rank == 1){
-        const int buffer_phen_size = dims.first*dims.second;
-        int iter_first_phen = rank*buffer_phen_size;
+    }else if (rank >= 1){
         double buffer_phen[buffer_phen_size];
-        double buffer_ants[2*nb_ants];
+        double buffer_ants[buffer_ants_size];
+        int buffer_food;
 
         //pour recevoir les fourmis
-        const int recv_ants_size = nb_ants*(nbp-1);
-        double recv_ants[recv_ants_size];
+        double recv_ants[buffer_ants_size];
 
         //pour recevoir les phens
         double recv_phens[buffer_phen_size];
-
+        std::vector<double> phen_buffer;
+        for ( unsigned int i = 0; i < local_nb_ants; ++i )
+            local_ants.emplace_back(pos_nest, life);
+        // On crée toutes les fourmis dans la fourmilière.
         while(1){
-            advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
-            double buffer[buffer_size];
-            buffer[0]=food_quantity;
+            advance_time(laby, phen, pos_nest, pos_food, local_ants, food_quantity);
+
+
+            MPI_Reduce (&food_quantity, &buffer_food, 1, MPI_INT, MPI_SUM,0, comm_1_n );
+            //packing phens
             for (unsigned int i= 0; i < dims.first;i++){
                 for (unsigned int j = 0; j < dims.second ; j++){
-                    buffer_phen[dims.second*i+j+1] = phen(i,j);
+                    buffer_phen[dims.second*i+j] = phen(i,j);
                 }
             }
-            for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
+            MPI_Allreduce (buffer_phen, recv_phens, buffer_phen_size, MPI_DOUBLE,MPI_MAX, comm_1_n );
+            //Unpacking phens
+            for (unsigned int i= 0; i < dims.first;i++){
+                for (unsigned int j = 0; j < dims.second ; j++){
+                    phen_buffer.emplace_back(recv_phens[i*dims.second+j]);
+                }
+            }        
+            phen.Swap_copy(phen_buffer);
+            phen_buffer.resize(0);
+
+            //packing ants
+            for (unsigned int k = 0,l = 0; k < local_nb_ants; k++,l+=2)
             {
-                position_t ant_pos=ants[k].get_position();
+                position_t ant_pos=local_ants[k].get_position();
                 buffer_ants[l]= ant_pos.first;
                 buffer_ants[l+1]= ant_pos.second;
             }
-            MPI_Allgather (buffer_phen, buffer_phen_size, MPI_DOUBLE, recv_phens, buffer_phen_size, MPI_DOUBLE, globComm );
-            MPI_Gather(buffer_ants, nb_ants, MPI_DOUBLE, recv_ants, recv_ants_size, MPI_DOUBLE, 1, globComm);
-            MPI_Send(buffer,buffer_size,MPI_DOUBLE,0,101,MPI_COMM_WORLD);
-        }
+            MPI_Gather(buffer_ants, buffer_ants_size, MPI_DOUBLE, recv_ants, buffer_ants_size, MPI_DOUBLE, 0, comm_1_n);
 
-    }else{
-        std::vector<double> phen_buffer;
-        const int buffer_phen_size = dims.first*dims.second;
-        double buffer_phen[buffer_phen_size];
-        const int recv_ants_size = 2*nb_ants*(nbp-1);
-        double buffer_ants[2*nb_ants];
-        double recv_phens[buffer_phen_size];
-        double recv_ants[recv_ants_size];
-        while(1){
-            advance_time(laby, phen, pos_nest, pos_food, ants, food_quantity);
-
-            for (unsigned int i= 0; i < dims.first;i++){
-                for (unsigned int j = 0; j < dims.second ; j++){
-                    buffer_phen[dims.second*i+j+1] = phen(i,j);
+            if(rank == 1){
+                buffer[0]=(double)buffer_food;    //first position of the buffer is the food quantity
+                //packing the new phens in the buffer that goes to the display
+                for (unsigned int i= 0; i < dims.first;i++){
+                    for (unsigned int j = 0; j < dims.second ; j++){
+                        buffer[dims.second*i+j+1] = phen(i,j);
+                    }
                 }
-            }
-            for (int k = 0,l = 0; k < nb_ants; k++,l+=2)
-            {
-                position_t ant_pos=ants[k].get_position();
-                buffer_ants[l]= ant_pos.first;
-                buffer_ants[1+l]= ant_pos.second;
-            }
-            MPI_Allgather (buffer_phen, buffer_phen_size, MPI_DOUBLE, recv_phens, buffer_phen_size, MPI_DOUBLE, globComm );
-            for (unsigned int i= 0; i < dims.first;i++){
-                for (unsigned int j = 0; j < dims.second ; j++){
-                    phen_buffer.emplace_back(recv_phens[i*dims.second+j+1]);
+                 //packing the ants in the buffer
+                for (unsigned int k = 0,l = 0; k < nb_ants; k++,l+=2)
+                {
+                    buffer[buffer_phen_size+1+l]=recv_ants[l];
+                    buffer[buffer_phen_size+2+l] =recv_ants[l+1];
+                } 
+                if (debug == true && food_quantity >=10){
+                    for (int kk = 0; kk < buffer_size; kk++){
+                        std::cout << " " << buffer[kk];
+                    }
+                    debug = false;
                 }
+                MPI_Send(buffer,buffer_size,MPI_DOUBLE,0,101,comm_0_1);
             }
-            phen.Swap_copy(phen_buffer);
-            MPI_Allgather (buffer_phen, buffer_phen_size, MPI_DOUBLE, recv_phens, buffer_phen_size, MPI_DOUBLE, globComm );
-            MPI_Gather(buffer_ants, 2*nb_ants, MPI_DOUBLE, recv_ants, recv_ants_size, MPI_DOUBLE, 1, globComm);
+            //std::cout << "*****************" << rank << "**************\n";
 
         }
 
