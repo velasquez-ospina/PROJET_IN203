@@ -32,7 +32,7 @@ void advance_time( const labyrinthe& land, pheronome& phen,
                    std::vector<ant>& ants, std::size_t& cpteur)
 {
     start1 = std::chrono::system_clock::now();
-    #pragma omp parallel for reduction(+:cpteur)
+    //#pragma omp parallel for reduction(+:cpteur)
     for ( size_t i = 0; i < ants.size(); ++i ){
         ants[i].advance(phen, land, pos_food, pos_nest, cpteur);}
     end1 = std::chrono::system_clock::now();
