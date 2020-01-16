@@ -1,7 +1,7 @@
 # Makefile principal
 # VARIABLES POUVANT ETRE REDEFINIS PAR L'UTILISATEUR
 # DIRECTORY OU EST INSTALLE LE PROJET :
-PROJECT_ROOT =/media/david/Hard_Disk/ENSTA/ANNEE_2/IN203/Promotion_2021/TravauxPratiques/Projet/Projet_laby_ants
+PROJECT_ROOT =/media/david/Hard_Disk/ENSTA/ANNEE_2/IN203/TP_self/Projet/Projet_laby_ants
 # Compilateur utilise
 CXX = g++
 # Options pour le debogage et l'optimisation
