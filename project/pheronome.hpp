@@ -12,7 +12,7 @@
 
 /**
  * @brief Carte des phéronomes
- * @details Gère une carte des phéronomes avec leurs mis à jour ( dont l'évaporation )
+ * @details Gère une carte des phéronomes avec leurs mis à jour ( dont l'évaporation)
  *
  */
 class pheronome {
