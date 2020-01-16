@@ -91,11 +91,11 @@ int main(int nargs, char* argv[])
         manager.on_idle([&] () { 
             displayer.display(food_quantity);
             win.blit(); 
-            if (food_quantity > 100 && Switch_end){
+            if (food_quantity > 10000 && Switch_end){
 
                 end2 = std::chrono::system_clock::now();
                 std::chrono::duration<double> time2 = end2-start2;
-                std::cout << "temps pour 100 de nourriture : " << time2.count()  << std::endl;
+                std::cout << "temps pour 10000 de nourriture : " << time2.count()  << std::endl;
                 Switch_end = false;
             }
             MPI_Recv(buffer,buffer_size,MPI_DOUBLE,MPI_ANY_TAG,101,MPI_COMM_WORLD, &status);
