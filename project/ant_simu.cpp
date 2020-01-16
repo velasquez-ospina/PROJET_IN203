@@ -105,7 +105,6 @@ int main(int nargs, char* argv[])
         ants.emplace_back(pos_nest, life);
     }
 
-    bool debug = true;
 
     if (rank == 0){
 
@@ -139,8 +138,8 @@ int main(int nargs, char* argv[])
                 }
                 phen.Swap_copy(phen_buffer);
                 phen_buffer.resize(0);
-                for (unsigned int k = 0,l = 0; k < nb_ants; k++,l+=2)
-                {
+
+                for (unsigned int k = 0,l = 0; k < nb_ants; k++,l+=2) {
                     position_t ant_pos;
                     ant_pos.first =buffer[buffer_phen_size+1+l];
                     ant_pos.second =buffer[buffer_phen_size+2+l];
