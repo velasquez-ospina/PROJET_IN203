@@ -53,6 +53,7 @@ int main(int nargs, char* argv[])
     //const double beta=0.9999; // Coefficient d'évaporation
     const double beta=0.999; // Coefficient d'évaporation
     labyrinthe laby(dims);
+
     // Location du nid
     position_t pos_nest{dims.first/2,dims.second/2};
     // Location de la nourriture
@@ -70,7 +71,7 @@ int main(int nargs, char* argv[])
     start2 = std::chrono::system_clock::now();
 
     const unsigned int nb_ants = 2*dims.first*dims.second; // Nombre de fourmis
-    const unsigned int local_nb_ants = nb_ants/(8-1);
+    const unsigned int local_nb_ants = nb_ants/(nbp-1);
     const int buffer_size = dims.first*dims.second+1+2*nb_ants;
     const int buffer_ants_size = 2*local_nb_ants;
     const int buffer_phen_size = dims.first*dims.second;
@@ -145,6 +146,7 @@ int main(int nargs, char* argv[])
                     ant_pos.second =buffer[buffer_phen_size+2+l];
                     ants[k].set_position(ant_pos);
                 } 
+            
         });
         manager.loop();
     }else if (rank >= 1){
@@ -153,7 +155,7 @@ int main(int nargs, char* argv[])
         int buffer_food;
 
         //pour recevoir les fourmis
-        double recv_ants[buffer_ants_size];
+        double recv_ants[buffer_ants_size*(nbp-1)];
 
         //pour recevoir les phens
         double recv_phens[buffer_phen_size];
@@ -205,15 +207,8 @@ int main(int nargs, char* argv[])
                     buffer[buffer_phen_size+1+l]=recv_ants[l];
                     buffer[buffer_phen_size+2+l] =recv_ants[l+1];
                 } 
-                if (debug == true && food_quantity >=10){
-                    for (int kk = 0; kk < buffer_size; kk++){
-                        std::cout << " " << buffer[kk];
-                    }
-                    debug = false;
-                }
                 MPI_Send(buffer,buffer_size,MPI_DOUBLE,0,101,comm_0_1);
             }
-            //std::cout << "*****************" << rank << "**************\n";
 
         }
 
